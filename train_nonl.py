@@ -10,7 +10,7 @@ BATCH_SIZE=50
 
 def main():
     data=get_data('data/oil_data.xlsx')
-    data=np.array(data)[:,(6,10)]
+    data=np.array(data)[:,(9,10)]
 
     train_data=[]
     test_data=[]
@@ -25,11 +25,11 @@ def main():
     train_loader=DataLoader(dataset=train_data,batch_size=BATCH_SIZE,shuffle=False)
     test_loader=DataLoader(dataset=test_data,batch_size=1,shuffle=False)
 
-    net=Net(1,3,3,1)
+    net=Net(1,4,4,1)
     optimizer=torch.optim.Adam(net.parameters(),lr=0.001)
     loss_func=torch.nn.MSELoss()
     timestamp = time.strftime('%Y-%m-%d', time.localtime(time.time()))
-    writer = SummaryWriter('./log/events'+timestamp+'train_model_Q')
+    writer = SummaryWriter('./log/events'+timestamp+'train_model_K')
     iter=0
     net.train()
     for epoch in range(500):
