@@ -1,6 +1,6 @@
 from tensorboardX import SummaryWriter
 import numpy as np
-from utils.handler import get_data
+from utils.handler import get_data,split_data
 from torch.utils.data import DataLoader,Dataset,TensorDataset
 from model.net_f1 import Net
 import torch
@@ -10,26 +10,27 @@ BATCH_SIZE=50
 
 def main():
     data=get_data('data/oil_data.xlsx')
-    data=np.array(data)[:,(9,10)]
+    data=np.array(data,dtype=np.float32)[:,(6,10)]
 
-    train_data=[]
-    test_data=[]
-    for i in range(data.shape[0]):
-        if i%10==0:
-            test_data.append(data[i])
-        else:
-            train_data.append(data[i])
-
-    train_data=np.array(train_data,dtype=np.float32)
-    test_data=np.array(test_data,dtype=np.float32)
+    # train_data=[]
+    # test_data=[]
+    # for i in range(data.shape[0]):
+    #     if i%10==0:
+    #         test_data.append(data[i])
+    #     else:
+    #         train_data.append(data[i])
+    #
+    # train_data=np.array(train_data,dtype=np.float32)
+    # test_data=np.array(test_data,dtype=np.float32)
+    train_data,test_data=split_data(data,0.1)
     train_loader=DataLoader(dataset=train_data,batch_size=BATCH_SIZE,shuffle=False)
     test_loader=DataLoader(dataset=test_data,batch_size=1,shuffle=False)
 
     net=Net(1,4,4,1)
     optimizer=torch.optim.Adam(net.parameters(),lr=0.001)
     loss_func=torch.nn.MSELoss()
-    timestamp = time.strftime('%Y-%m-%d', time.localtime(time.time()))
-    writer = SummaryWriter('./log/events'+timestamp+'train_model_K')
+    timestamp = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
+    writer = SummaryWriter('./log/events'+timestamp+'train_model_Q')
     iter=0
     net.train()
     for epoch in range(500):
