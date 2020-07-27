@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 plt.rcParams['font.sans-serif'] = 'SimHei,Times New Roman'
 #plt.rcParams['font.size']=18
 
-random_seed=1234
+random_seed=12345
 
 
 #print corr png
@@ -29,13 +29,13 @@ def get_data(filename):
     data.replace("side", 10, inplace=True)
 
 
-    # data.plot(subplots=True, layout=(-1, 3), figsize=(18, 10), sharex=True)
-    # plt.savefig("../figures/dataFrames.png", bbox_inches='tight')
-    # plot_corr(data[['输入方向','支管与主管流量比Q1/Q0','主管内固体浓度C0','惯性指数K','k,-0.05次方','PTE']])
-    # #plt.savefig("../figures/corr.png")
-    # print(data.corr())
+    data.plot(subplots=True, layout=(-1, 3), figsize=(18, 10), sharex=True)
+    plt.savefig("../figures/dataFrames.png", bbox_inches='tight')
+    plot_corr(data[['输入方向','支管与主管流量比Q1/Q0','主管内固体浓度C0','惯性指数K','k,-0.05次方','PTE']])
+    #plt.savefig("../figures/corr.png")
+    print(data.corr())
     # data.corr().to_csv("../data/output/corr.csv", index=False, sep=',')
-    # plt.show()
+    plt.show()
     return data
 
 
@@ -63,7 +63,7 @@ def split_data(data,size):
 
 def main():
     data=get_data('../data/oil_data.xlsx')
-    data=onehotHandler(data,['输入方向','主管内固体浓度C0'])
+    # data=onehotHandler(data,['输入方向','主管内固体浓度C0'])
 
     print(data)
 

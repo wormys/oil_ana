@@ -44,7 +44,7 @@ def main():
     optimizer=torch.optim.Adam(net.parameters(),lr=0.001)
     loss_func=torch.nn.MSELoss()
     timestamp = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
-    writer = SummaryWriter('./log/events'+timestamp+'train_model_ALLWithoutK')
+    writer = SummaryWriter('./log/events'+timestamp+'train_model_ALLWithoutK_otherseed')
     iter=0
     net.train()
     for epoch in range(500):
