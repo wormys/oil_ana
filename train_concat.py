@@ -8,9 +8,87 @@ import torch
 import time
 import pandas as pd
 from torch.autograd import Variable
-BATCH_SIZE=50
+BATCH_SIZE=359
 
-def main():
+def get_physical_infos(train_loader,test_loader):
+    net1 = net_phy(1, 4, 4, 1)
+    optimizer_net1 = torch.optim.Adam(net1.parameters(), lr=0.001)
+    train_physical_infos = []
+    test_physical_infos = []
+    loss_func = torch.nn.MSELoss()
+    iter = 0
+    net1.train()
+    for epoch in range(500):
+        for step, data in enumerate(train_loader):
+            # x,y=Variable(x),Variable(y)
+            x, y = data[:, 9].reshape(data.shape[0], 1), data[:, 10].reshape(data.shape[0], 1)
+            # print(x)
+            prediction = net1(x)
+            loss = loss_func(prediction, y)
+            optimizer_net1.zero_grad()
+            loss.backward()
+            optimizer_net1.step()
+            iter += 1
+            # writer.add_scalar('train_loss', loss.item(), iter)
+    torch.save(net1.state_dict(), 'pkl/get_phy_params.pkl')
+    net1.eval()
+    pre_loss = 0
+    test_loss = []
+    for step, data in enumerate(train_loader):
+        x_train, y_train = data[:, 9].reshape(data.shape[0], 1), data[:, 10].reshape(data.shape[0], 1)
+        train_prediction, train_physical_info = net1(x_train)
+        train_physical_infos.append(train_physical_info)
+        # train_data.append(train_physical_info.detach().numpy())
+        # pre_loss=loss_func(train_prediction,y_train).item()
+        # test_loss.append(pre_loss)
+
+        # writer.add_scalar('test_loss',pre_loss.item(),step)
+    for step, data in enumerate(test_loader):
+        x_test, y_test = data[:, 9].reshape(data.shape[0], 1), data[:, 10].reshape(data.shape[0], 1)
+        test_prediction, test_physical_info = net1(x_test)
+        test_physical_infos.append(test_physical_info)
+        # test_data.append(test_physical_info.detach().numpy())
+        # writer.add_scalar('test_loss',pre_loss.item(),step)
+    return train_physical_infos,test_physical_infos
+
+
+def net2(train_loader,test_loader,train_physical_infos,test_physical_infos):
+    net2 = net_concat(9, 4, 8, 1)
+    optimizer_net2 = torch.optim.Adam(net2.parameters(), lr=0.001)
+    loss_func = torch.nn.MSELoss()
+    timestamp = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
+    writer = SummaryWriter('./log/events' + timestamp + 'train_model_concat')
+    iter = 0
+    net2.train()
+    for epoch in range(500):
+        for step, data in enumerate(train_loader):
+            # x,y=Variable(x),Variable(y)
+            x, y = data[:, 0:9], data[:, 10].reshape(data.shape[0], 1)
+            # print(x)
+            net2.add_physical_info(train_physical_infos[step])
+            prediction = net2(x)
+            loss = loss_func(prediction, y)
+            optimizer_net2.zero_grad()
+            loss.backward(retain_graph=True)
+            optimizer_net2.step()
+            iter += 1
+            writer.add_scalar('train_loss', loss.item(), iter)
+    torch.save(net2.state_dict(), 'pkl/concat_params.pkl')
+    print("loss:", loss)
+    net2.eval()
+    pre_loss = 0
+    test_loss = []
+    for step, data in enumerate(test_loader):
+        x, y = data[:, 0:9], data[:, 10].reshape(data.shape[0], 1)
+        net2.add_physical_info(test_physical_infos[step])
+        prediction = net2(x)
+        pre_loss = loss_func(prediction, y).item()
+        test_loss.append(pre_loss)
+        writer.add_scalar('test_loss', pre_loss, step)
+    print("MSE_mean:", np.mean(test_loss), "MSE_std:", np.std(test_loss))
+    print(("gap:%f")%(np.mean(test_loss)-loss))
+
+def data_handler():
     data=get_data('data/oil_data.xlsx')
     # one-hot encode
     one_hot_feature=['输入方向']
@@ -41,77 +119,17 @@ def main():
     test_loader=DataLoader(dataset=test_data,batch_size=1,shuffle=False)
 
 
-    net1=net_phy(1,4,4,1)
-    optimizer_net1=torch.optim.Adam(net1.parameters(),lr=0.001)
-    loss_func=torch.nn.MSELoss()
-    #timestamp = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
-    #writer = SummaryWriter('./log/events'+timestamp+'train_model_ALLWithoutK')
-    ALLloss=[]
-    train_physical_infos=[]
-    test_physical_infos = []
-    iter=0
-    net1.train()
-    for epoch in range(500):
-         for step,data in enumerate(train_loader):
-             # x,y=Variable(x),Variable(y)
-             x, y = data[:, 9].reshape(data.shape[0],1), data[:, 10].reshape(data.shape[0], 1)
-             #print(x)
-             prediction=net1(x)
-             loss=loss_func(prediction,y)
-             optimizer_net1.zero_grad()
-             loss.backward()
-             optimizer_net1.step()
-             iter+=1
-             #writer.add_scalar('train_loss', loss.item(), iter)
 
-    net1.eval()
-    pre_loss=0
-    test_loss=[]
-    for step,data in enumerate(train_loader):
-         x_train, y_train = data[:, 9].reshape(data.shape[0],1), data[:, 10].reshape(data.shape[0], 1)
-         train_prediction,train_physical_info=net1(x_train)
-         train_physical_infos.append(train_physical_info)
-         # pre_loss=loss_func(train_prediction,y_train).item()
-         # test_loss.append(pre_loss)
 
-         #writer.add_scalar('test_loss',pre_loss.item(),step)
-    for step,data in enumerate(test_loader):
-         x_test, y_test = data[:, 9].reshape(data.shape[0],1), data[:, 10].reshape(data.shape[0], 1)
-         test_prediction, test_physical_info = net1(x_test)
-         test_physical_infos.append(test_physical_info)
-         #writer.add_scalar('test_loss',pre_loss.item(),step)
+    return train_loader,test_loader
+    # timestamp = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
+    # writer = SummaryWriter('./log/events'+timestamp+'train_model_ALLWithoutK')
+    # ALLloss=[]
 
-    net2 = net_concat(9, 4, 8, 1)
-    optimizer_net2 = torch.optim.Adam(net2.parameters(), lr=0.001)
-    timestamp = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
-    writer = SummaryWriter('./log/events'+timestamp+'train_model_concat')
-    iter = 0
-    net2.train()
-    for epoch in range(500):
-        for step, data in enumerate(train_loader):
-            # x,y=Variable(x),Variable(y)
-            x, y = data[:, 0:9], data[:, 10].reshape(data.shape[0], 1)
-            # print(x)
-            net2.add_physical_info(train_physical_infos[step])
-            prediction = net2(x)
-            loss = loss_func(prediction, y)
-            optimizer_net2.zero_grad()
-            loss.backward(retain_graph=True)
-            optimizer_net2.step()
-            iter += 1
-            writer.add_scalar('train_loss', loss.item(), iter)
-
-    net2.eval()
-    pre_loss = 0
-    test_loss = []
-    for step, data in enumerate(test_loader):
-        x, y = data[:, 0:9], data[:, 10].reshape(data.shape[0], 1)
-        net2.add_physical_info(test_physical_infos[step])
-        prediction = net2(x)
-        pre_loss = loss_func(prediction, y)
-        test_loss.append(pre_loss)
-        writer.add_scalar('test_loss',pre_loss.item(),step)
-
+def main():
+    train_loader,test_loader=data_handler()
+    train_physical_infos,test_physical_infos=get_physical_infos(train_loader,test_loader)
+    net2(train_loader,test_loader,train_physical_infos,test_physical_infos)
 
 
 if __name__ =='__main__':
