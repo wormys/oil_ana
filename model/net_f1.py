@@ -1,7 +1,6 @@
 import torch
 
 
-
 class Net(torch.nn.Module):
     def __init__(self, input, hidden1, hidden2, output):
         super(Net, self).__init__()
